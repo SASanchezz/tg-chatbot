@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  app:
+    image: python:latest
+    container_name: ${PYTHON_HOST}
+    build: ./docker/images/python
+    ports:
+     - '30:3000'
+    volumes:
+      - ./:/app
+    command: bash -c "pip install -r requirements.txt && python -u src/main.py"
+    links:
+      - 'db'
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: ${PHPMYADMIN_HOST}
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - 8181:80
+    volumes:
+      - /sessions
+
+  db:
+    image: mysql:8
+    ports:
+      - ${MYSQL_PORT:-3306}:3306
+    volumes:
+      - ./docker/db:/docker-entrypoint-initdb.d/
+      - ./docker/var/db:/var/lib/mysql
+    container_name: ${MYSQL_HOST}
+    restart: always
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_INITDB_SKIP_TZINFO=${MYSQL_INITDB_SKIP_TZINFO}
+    command:
+      'mysqld --innodb-flush-method=fsync'
+
+
+volumes:
+  db:
